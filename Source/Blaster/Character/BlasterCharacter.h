@@ -14,6 +14,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostInitializeComponents() override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -24,6 +25,7 @@ protected:
 	void LookUp(float Value);
 
 	void Jump();
+	void EquipButtonPressed();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category=Camera)
@@ -34,11 +36,17 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* OverheadWidget;
 
-	UPROPERTY(ReplicatedUsing=OnRep_OverlappingWeapon) //복사가 이뤄질때, 해당함수를 사용하게한다.
+	UPROPERTY(ReplicatedUsing=OnRep_OverlappingWeapon) //복사가 이뤄질때, 해당함수를 사용하게 설정
 	class AWeapon* OverlappingWeapon;
 
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon); //관례적으로 OnRep_사용함수 로 이름을 정한다.
+
+	UPROPERTY(VisibleAnywhere)
+	class UCombatComponent* Combat;
+
+	UFUNCTION(Server, Reliable)
+	void ServerEquipButtonPressed();
 
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
