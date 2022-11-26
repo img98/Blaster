@@ -3,6 +3,8 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "Blaster/Weapon/Weapon.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -24,10 +26,24 @@ ABlasterCharacter::ABlasterCharacter()
 	OverheadWidget->SetupAttachment(RootComponent);
 }
 
+void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly); //변수복사를 위한 매크로
+
+}
+
 void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void ABlasterCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -41,6 +57,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
 }
+
 
 void ABlasterCharacter::MoveForward(float Value)
 {
@@ -76,10 +93,32 @@ void ABlasterCharacter::Jump()
 	ACharacter::Jump();
 }
 
-void ABlasterCharacter::Tick(float DeltaTime)
+void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon) //서버에서만 작동하는 버전 <-RepNotify버전은 서버에서는 이뤄지지않기에 따로 버전이 필요하다.
 {
-	Super::Tick(DeltaTime);
+	if (OverlappingWeapon) //overlappingweapon=weapon을 하기전에 값이 있다면. 즉, 이전에 할당한 적이 있다면
+	{
+		OverlappingWeapon->ShowPickupWidget(false);
+	}
 
+	OverlappingWeapon = Weapon;
+	if (IsLocallyControlled()) //지금 머신에서 컨트롤하는지 확인가능 = 내가 서버라는것을 알수있다.
+	{
+		if (OverlappingWeapon)
+		{
+			OverlappingWeapon->ShowPickupWidget(true);
+		}
+	}
 }
 
-
+void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon) 
+{	
+	//그냥 서버에서 변수를 고치면 모든 머신들의 변수가 변하기에, overlap을 한 머신에서만 호출하는 함수를 만든다.
+	if (OverlappingWeapon)
+	{
+		OverlappingWeapon->ShowPickupWidget(true);
+	}
+	if (LastWeapon) //endoverlap을 구현하기 위해 추적
+	{
+		LastWeapon->ShowPickupWidget(false);
+	}
+}
