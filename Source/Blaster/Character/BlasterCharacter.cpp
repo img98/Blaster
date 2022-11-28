@@ -28,6 +28,8 @@ ABlasterCharacter::ABlasterCharacter()
 
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	Combat->SetIsReplicated(true); //컴포넌트는 RepLifetime할것없이, Replicated설정을 해줘야 한다.
+
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 }
 void ABlasterCharacter::PostInitializeComponents()
 {
@@ -69,6 +71,9 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ABlasterCharacter::EquipButtonPressed);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ABlasterCharacter::CrouchButtonPressed);
+	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ABlasterCharacter::AimButtonPressed);
+	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ABlasterCharacter::AimButtonReleased);
 }
 
 
@@ -129,6 +134,33 @@ void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 
 }
 
+void ABlasterCharacter::CrouchButtonPressed()
+{
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Crouch(); //ACharacter에는 이미 Crouch()가 내장되어있고, 여기서 bIsCrouched의 복사까지 다 설정해놨다. Jump처럼
+	}
+}
+
+void ABlasterCharacter::AimButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(true);
+	}
+}
+void ABlasterCharacter::AimButtonReleased()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(false);
+	}
+}
+
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon) //서버에서만 작동하는 버전 <-RepNotify버전은 서버에서는 이뤄지지않기에 따로 버전이 필요하다.
 {
 	if (OverlappingWeapon) //overlappingweapon=weapon을 하기전에 값이 있다면. 즉, 이전에 할당한 적이 있다면
@@ -157,4 +189,13 @@ void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 	{
 		LastWeapon->ShowPickupWidget(false);
 	}
+}
+bool ABlasterCharacter::IsWeaponEquipped()
+{
+	return(Combat && Combat->EquippedWeapon);
+}
+
+bool ABlasterCharacter::IsAiming()
+{
+	return(Combat && Combat->bAiming);
 }
