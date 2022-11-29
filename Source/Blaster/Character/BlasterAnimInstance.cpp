@@ -35,6 +35,14 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 	FRotator AimRotation = BlasterCharacter->GetBaseAimRotation(); //조준점이 바라보는 월드Rotation
 	FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(BlasterCharacter->GetVelocity()); // X(캐릭터의 진행방향)의 월드 Rotation을 추출
+	FRotator DeltaRot = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation);
+	DeltaRotation = FMath::RInterpTo(DeltaRotation, DeltaRot, DeltaTime, 6.f);
+	YawOffset = DeltaRotation.Yaw;
 
-	YawOffest = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw; //움직임방향과 시점의 차이를 통해 몸의 기울기 추출
+	CharacterRotationLastFrame = CharacterRotation;
+	CharacterRotation = BlasterCharacter->GetActorRotation();
+	const FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotation, CharacterRotationLastFrame);
+	const float Target = Delta.Yaw / DeltaTime;
+	const float Interp = FMath::FInterpTo(Lean, Target, DeltaTime, 6.f);
+	Lean = FMath::Clamp(Interp, -90.f, 90.f);
 }

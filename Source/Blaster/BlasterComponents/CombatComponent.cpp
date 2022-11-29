@@ -69,6 +69,8 @@ void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	}
 	EquippedWeapon->SetOwner(Character); //Owner는 따로 OnRep해주지 않아도, 함수 내에서 서버복사 처리해주니, 클라에서 복사 걱정할필요없다.
-	
+
+	Character->bUseControllerRotationYaw = true; //무기장착시 움직임이 컨트롤러 Yaw인풋을 따라갈수있도록 재설정
+	Character->GetCharacterMovement()->bOrientRotationToMovement = false; //movement방향으로 rotation이 돌지않게 재설정	
 }
 
