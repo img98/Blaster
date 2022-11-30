@@ -7,6 +7,7 @@
 #include "Blaster/Weapon/Weapon.h"
 #include "Blaster/BlasterComponents/CombatComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -61,6 +62,33 @@ void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	AimOffset(DeltaTime);
+}
+
+void ABlasterCharacter::AimOffset(float DeltaTime)
+{
+	if (Combat && Combat->EquippedWeapon == nullptr) return;
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	float Speed = Velocity.Size();
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+
+	if (Speed == 0.f && !bIsInAir) // Idle상태이고, 점프중이지 않은 상태의 AO yaw 찾기
+	{
+		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); //매프레임마다 aim하고 있는 Yaw를 저장한다.
+		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation, StartingAimRotation); //두 rot의 순서에 따라 +-반대의 rot이 나오더라!
+		AO_Yaw = DeltaAimRotation.Yaw;
+		bUseControllerRotationYaw = false; //조준중일때, 캐릭터가 내 컨트롤러의 aim을따라 회전하지 않기위해
+		//(=AO에 의한 움직임은 사실 Rotation변화가 아님을 명심하자! 그저 애니메이션이 나오는것일뿐)
+	}
+	if (Speed > 0.f || bIsInAir) // 뛰거나 점프중일때 (=즉, 이동했을때 =캐릭터가 보는방향이 바뀔 때)
+	{
+		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); //매프레임마다 aim하고 있는 Yaw를 저장한다.
+		AO_Yaw = 0.f; //이동하면 AimOffset이 0이어야한다...
+		bUseControllerRotationYaw = true; //캐릭터가 내 컨트롤러의 aim을따라 회전하기 위해 다시 true
+	}
+
+	AO_Pitch = GetBaseAimRotation().Pitch; //pitch는 그대로 조준점의 pitch만 갖다쓰면되서 쉽다.
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
