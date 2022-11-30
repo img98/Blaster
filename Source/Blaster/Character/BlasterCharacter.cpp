@@ -88,7 +88,14 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		bUseControllerRotationYaw = true; //캐릭터가 내 컨트롤러의 aim을따라 회전하기 위해 다시 true
 	}
 
-	AO_Pitch = GetBaseAimRotation().Pitch; //pitch는 그대로 조준점의 pitch만 갖다쓰면되서 쉽다.
+	AO_Pitch = GetBaseAimRotation().Pitch; //이론상 그냥 조준점의 pitch를 가져가면 되는 간단한 코드인데...
+	if (AO_Pitch > 90.f && !IsLocallyControlled()) //로컬머신은 괜찮은데 서버머신에서는 음수로 나오는 각도가 360도에서부터 감소하는식으로 전송되는 글리치가 있었기에, 그걸 해결하려는 코드
+	{
+		//pitch를 [270,360)에서 [-90,0]으로 맵핑
+		FVector2D InRange(270.f, 360.f);
+		FVector2D OutRange(-90.f, 0.f);
+		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
+	}
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
