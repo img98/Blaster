@@ -28,6 +28,11 @@ private:
 	UPROPERTY(Replicated)
 	bool bAiming;
 
+	UPROPERTY(EditAnywhere)
+	float BaseWalkSpeed = 600.f;
+	UPROPERTY(EditAnywhere)
+	float AimingWalkSpeed = 450.f;
+
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);

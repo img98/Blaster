@@ -20,12 +20,28 @@ void UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+	}
 }
 
 void UCombatComponent::SetAiming(bool bIsAiming)
 {
-	bAiming = bIsAiming;
+	bAiming = bIsAiming; //사실 없어도 되는코드, 만일 서버송신이 안되도 내머신에서는 Aiming으로 보이게하는정도?
 	ServerSetAiming(bIsAiming); //어쩌피 서버에서는 위 코드와 같은 결과를 갖고오고, 클라에서는 서버요청을 해야하므로 if문 필요없음.
+	if (Character) //없어도 괜찮음. ServerSetAiming에 또 있다.
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimingWalkSpeed : BaseWalkSpeed; //에임하는경우 좌측, 에임푸는경우 우측 스피드로
+	}
+}
+void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
+{
+	bAiming = bIsAiming;
+	if (Character) //서버측에 업데이트 하지 않으면, 서버는 강제로 해당 캐릭터의 위치를 서버측에 동기화시킴(builtin된 무브먼트comp는 동기화까지 신경쓴 컴포넌트이기 때문)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimingWalkSpeed : BaseWalkSpeed; //에임하는경우 좌측, 에임푸는경우 우측 스피드로
+	}
 }
 
 void UCombatComponent::OnRep_EquippedWeapon()
@@ -36,12 +52,6 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false; //movement방향으로 rotation이 돌지않게 재설정	
 	}
 }
-
-void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
-{
-	bAiming = bIsAiming;
-}
-
 
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
