@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "BlasterAnimInstance.generated.h"
+#include "Blaster/BlasterTypes/TurningInPlace.h"
 
+#include "BlasterAnimInstance.generated.h"
 /**
  * 
  */
@@ -51,4 +52,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	FTransform LeftHandTransform;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	ETurningInPlace TurningInPlace;
 };
