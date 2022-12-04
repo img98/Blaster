@@ -80,7 +80,11 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); //매프레임마다 aim하고 있는 Yaw를 저장한다.
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation, StartingAimRotation); //두 rot의 순서에 따라 +-반대의 rot이 나오더라!
 		AO_Yaw = DeltaAimRotation.Yaw;
-		bUseControllerRotationYaw = false; //조준중일때, 캐릭터가 내 컨트롤러의 aim을따라 회전하지 않기위해
+		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning)
+		{
+			InterpAO_Yaw = AO_Yaw; //InterpAO_Yaw는 AO_yaw가 얼마나 돌아갔는지 저장하는 변수라고 생각하면될듯?
+		}
+		bUseControllerRotationYaw = true; //aim을 돌리며, 액터를 회전하며, 애니메이션을 틀기위해 true로
 		//(=AO에 의한 움직임은 사실 Rotation변화가 아님을 명심하자! 그저 애니메이션이 나오는것일뿐)
 
 		TurnInPlace(DeltaTime); //가만히 멈춘상태에서 시점을 돌렸을때, 캐릭터가 돌게하는 함수
@@ -114,6 +118,16 @@ void ABlasterCharacter::TurnInPlace(float DeltaTime)
 	else if (AO_Yaw < -90.f)
 	{
 		TurningInPlace = ETurningInPlace::ETIP_Left;
+	}
+	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
+	{
+		InterpAO_Yaw = FMath::FInterpTo(InterpAO_Yaw, 0.f, DeltaTime, 4.f);
+		AO_Yaw = InterpAO_Yaw;
+		if (FMath::Abs(AO_Yaw) < 15.f) //일정 각도이상 회전시켰다면,
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); //이동한것처럼 새로운 StartingAimRotaion찾기
+		}
 	}
 }
 
