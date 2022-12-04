@@ -35,7 +35,10 @@ ABlasterCharacter::ABlasterCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore); //캐릭터가 다른캐릭터 뒤로 지나갈때 타캐릭터의 카메라시점 바꾸는것 방지
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 850.f); //돌때 얼마나 빠르게 돌지
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning; //TurnInPlace의 초기설정
+	NetUpdateFrequency = 66.f; //초마다 net에서 얼마나 이 액터를 복사할것인지 설정. 보통 빠른 템포의 fps는 66-33 frequency를 사용한다더라
+	MinNetUpdateFrequency = 33.f; // 외에도 DefaultEngine.ini에서 NetServerMaxTickRate는 주로 60으로 맞춘다함
 }
 void ABlasterCharacter::PostInitializeComponents()
 {
@@ -179,7 +182,14 @@ void ABlasterCharacter::LookUp(float Value)
 
 void ABlasterCharacter::Jump()
 {
-	ACharacter::Jump();
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Super::Jump();
+	}
 }
 void ABlasterCharacter::EquipButtonPressed()
 {

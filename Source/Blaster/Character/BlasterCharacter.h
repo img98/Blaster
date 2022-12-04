@@ -26,7 +26,7 @@ protected:
 	void LookAround(float Value);
 	void LookUp(float Value);
 
-	void Jump();
+	virtual void Jump() override;
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
 	void AimButtonPressed();
