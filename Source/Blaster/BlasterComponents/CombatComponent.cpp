@@ -53,6 +53,15 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	}
 }
 
+void UCombatComponent::FireButtonPressed(bool bPressed)
+{ 
+	bFireButtonPressed = bPressed;
+	if (Character && bFireButtonPressed) //bFireButtonPressed체크를 안하면 release할때도 한발더 쏘게되더라
+	{
+		Character->PlayFireMontage(bAiming);
+	}
+}
+
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
