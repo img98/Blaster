@@ -15,6 +15,13 @@ UCombatComponent::UCombatComponent()
 
 }
 
+void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
+	DOREPLIFETIME(UCombatComponent, bAiming);
+}
 
 void UCombatComponent::BeginPlay()
 {
@@ -55,10 +62,28 @@ void UCombatComponent::OnRep_EquippedWeapon()
 
 void UCombatComponent::FireButtonPressed(bool bPressed)
 { 
-	bFireButtonPressed = bPressed;
-	if (Character && bFireButtonPressed) //bFireButtonPressed체크를 안하면 release할때도 한발더 쏘게되더라
+	bFireButtonPressed = bPressed;	//bAiming과는 달리 서버복사를 하지 않는다 => 나중에 자동소총도 만들건데, 서버복사는 변수의 변화(false->true)를 감지하여 작동하기에 부적절하다.(사실 만들라면 만들수있긴함)
+	//서버RPC가 아니라 NetMulticast RPC를 사용해 클라,서버 둘다 작동하게 하자.
+
+	//ServerFire에 있는 Montage재생과 Fire함수 호출은 위 SetAiming과 같은 맥락으로 클라에서 실행하지 않아도 된다.=그래서 삭제했다.
+
+	if (bFireButtonPressed)
+	{
+		ServerFire(); //서버에 명령을 보내야, 서버에서 multicast를 하라고 모든 클라에게 명령할수 있기에 2개 단계를 거치는것!
+	}
+}
+void UCombatComponent::ServerFire_Implementation()
+{
+	MulticastFire();
+}
+void UCombatComponent::MulticastFire_Implementation()
+{
+	//bFireButtonPressed는 명령이 왔음을 알리는것쁀이니, 온전히 클라에서 관리해도 된다.
+	if (EquippedWeapon == nullptr) return;
+	if (Character)
 	{
 		Character->PlayFireMontage(bAiming);
+		EquippedWeapon->Fire();
 	}
 }
 
@@ -66,14 +91,6 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-}
-
-void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
-	DOREPLIFETIME(UCombatComponent, bAiming);
 }
 
 void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)

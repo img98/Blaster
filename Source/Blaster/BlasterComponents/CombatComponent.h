@@ -34,6 +34,7 @@ private:
 	float AimingWalkSpeed = 450.f;
 
 	bool bFireButtonPressed;
+
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
@@ -45,6 +46,11 @@ protected:
 	void OnRep_EquippedWeapon();
 
 	void FireButtonPressed(bool bPressed);
+
+	UFUNCTION(Server, Reliable)
+	void ServerFire();
+	UFUNCTION(NetMultiCast, Reliable)
+	void MulticastFire();
 
 public:	
 
