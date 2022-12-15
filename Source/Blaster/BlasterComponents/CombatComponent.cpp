@@ -85,7 +85,7 @@ void UCombatComponent::MulticastFire_Implementation()
 	if (Character)
 	{
 		Character->PlayFireMontage(bAiming);
-		EquippedWeapon->Fire();
+		EquippedWeapon->Fire(HitTarget);
 	}
 }
 
@@ -121,9 +121,13 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 		if (!TraceHitResult.bBlockingHit) //하늘을 본다던가 block하는 존재가 없을때
 		{
 			TraceHitResult.ImpactPoint = End;
+
+			HitTarget = End;
 		}
 		else
 		{
+			HitTarget = TraceHitResult.ImpactPoint;
+
 			DrawDebugSphere(
 				GetWorld(),
 				TraceHitResult.ImpactPoint,
