@@ -9,6 +9,8 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 {
 	Super::Fire(HitTarget);
 
+	if (!HasAuthority()) return; //서버에서만 projectile을 생성할수 있게 조건을 건다.
+
 	APawn* InstigatorPawn = Cast<APawn>(GetOwner());
 	const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName(FName("MuzzleFlash"));
 	if (MuzzleFlashSocket)

@@ -4,10 +4,14 @@
 #include "Projectile.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 AProjectile::AProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true; //서버에서만 생성되게 작성했기에, Replicates 처리를 해줘야 클라에서도 생성할수있따.
 
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	SetRootComponent(CollisionBox);
@@ -25,6 +29,17 @@ void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (Tracer)
+	{
+		TracerComponent = UGameplayStatics::SpawnEmitterAttached(
+			Tracer,
+			CollisionBox,
+			FName(), //붙이고싶은 위치가 없다면 비워둔다.
+			GetActorLocation(),
+			GetActorRotation(),
+			EAttachLocation::KeepWorldPosition
+			);
+	}
 }
 
 void AProjectile::Tick(float DeltaTime)
