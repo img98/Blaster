@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Sound/SoundCue.h"
 
 AProjectile::AProjectile()
 {
@@ -40,11 +41,35 @@ void AProjectile::BeginPlay()
 			EAttachLocation::KeepWorldPosition
 			);
 	}
+
+	if (HasAuthority())
+	{
+		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectile::OnHit); //collision에서 OnComponentHit가 일어나면, 우리가 만든 OnHit에 연결
+	}
 }
 
 void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	Destroyed();
+}
+
+void AProjectile::Destroyed()
+{
+	Super::Destroyed(); //builtin된 Destroyed를 사용하면 서버뿐 아니라 클라에서도 쉽게 삭제할수있다. 서버뿐 아니라 클라에도 간섭한다는 특성을 이용해, 
+	//클라에 간섭할때 삭제만이 아닌 hit이벤트를 발생시킨다면 RPC를 사용하지 않고도 효과적이게 복사가 가능할것이다!
+	if (ImpactParticles)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, GetActorTransform());
+	}
+	if (ImpactSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
+	}
 }
 

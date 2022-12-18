@@ -71,21 +71,24 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 
 	if (bFireButtonPressed)
 	{
-		ServerFire(); //서버에 명령을 보내야, 서버에서 multicast를 하라고 모든 클라에게 명령할수 있기에 2개 단계를 거치는것!
+		//서버에 명령을 보내야, 서버에서 multicast를 하라고 모든 클라에게 명령할수 있기에 2개 단계를 거치는것!
+		FHitResult HitResult;
+		TraceUnderCrosshairs(HitResult);
+		ServerFire(HitResult.ImpactPoint); //ImpactPoint는 NetQuantize와 호환된다.
 	}
 }
-void UCombatComponent::ServerFire_Implementation()
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
-	MulticastFire();
+	MulticastFire(TraceHitTarget);
 }
-void UCombatComponent::MulticastFire_Implementation()
+void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	//bFireButtonPressed는 명령이 왔음을 알리는것쁀이니, 온전히 클라에서 관리해도 된다.
 	if (EquippedWeapon == nullptr) return;
 	if (Character)
 	{
 		Character->PlayFireMontage(bAiming);
-		EquippedWeapon->Fire(HitTarget);
+		EquippedWeapon->Fire(TraceHitTarget);
 	}
 }
 
@@ -113,29 +116,11 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 		FVector End = Start + CrosshairWorldDirection * TRACE_LENGTH;
 
 		GetWorld()->LineTraceSingleByChannel(
-			TraceHitResult, //ref로 건내받았던걸 사용
+			TraceHitResult, //ref로 건내받았던것에 저장
 			Start,
 			End,
 			ECollisionChannel::ECC_Visibility
 		);
-		if (!TraceHitResult.bBlockingHit) //하늘을 본다던가 block하는 존재가 없을때
-		{
-			TraceHitResult.ImpactPoint = End;
-
-			HitTarget = End;
-		}
-		else
-		{
-			HitTarget = TraceHitResult.ImpactPoint;
-
-			DrawDebugSphere(
-				GetWorld(),
-				TraceHitResult.ImpactPoint,
-				12.f,
-				12.f,
-				FColor::Red
-			);
-		}
 	}
 }
 
@@ -143,8 +128,6 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FHitResult HitResult;
-	TraceUnderCrosshairs(HitResult);
 }
 
 void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)

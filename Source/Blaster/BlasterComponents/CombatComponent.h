@@ -36,8 +36,6 @@ private:
 
 	bool bFireButtonPressed;
 
-	FVector HitTarget;
-
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
@@ -51,9 +49,9 @@ protected:
 	void FireButtonPressed(bool bPressed);
 
 	UFUNCTION(Server, Reliable)
-	void ServerFire();
+	void ServerFire(const FVector_NetQuantize& TraceHitTarget); //NetQuantize는 패킷전송에 특화된 vector의 종류다.
 	UFUNCTION(NetMultiCast, Reliable)
-	void MulticastFire();
+	void MulticastFire(const FVector_NetQuantize& TraceHitTarget);
 
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
