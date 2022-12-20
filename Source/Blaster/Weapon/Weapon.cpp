@@ -7,6 +7,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Animation/AnimationAsset.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Casing.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 AWeapon::AWeapon()
 {
@@ -115,4 +117,23 @@ void AWeapon::Fire(const FVector& HitTarget)
 		WeaponMesh->PlayAnimation(FireAnimation, false);
 	}
 	//실제 발사는 하위 클래스에서 구현(발사방식의 차별성을 두기위해)
+
+	if (CasingClass)
+	{
+		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("AmmoEject"));
+		if (AmmoEjectSocket)
+		{
+			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(WeaponMesh);
+
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				World->SpawnActor<ACasing>( //만들클래스, 생성위치, 생성방향, 패러미터를 통해 생성(간단히 Actor생성뿐이라 Param은 딱히 필요없더라)
+					CasingClass,
+					SocketTransform.GetLocation(),
+					SocketTransform.GetRotation().Rotator() //GetRotation시 FQuat를 반환하지만, SpawnActor는 FRotator가 필요하기에 변환
+					);
+			}
+		}
+	}
 }
