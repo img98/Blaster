@@ -51,6 +51,7 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 	Controller = Controller == nullptr ? Cast<ABlasterPlayerController>(Character->Controller) : Controller; // ?를 사용하여, 설정되지 않았을때는 확실하게, 그후에는 굳이 cast비용이 들지않게 사용가능
 	if (Controller)
 	{
+		UE_LOG(LogTemp, Error, TEXT("!!"));
 		HUD = HUD == nullptr ? Cast<ABlasterHUD>(Controller->GetHUD()) : HUD; //이런 문법은 cost소모를 줄여주는데 효과적이다.
 		if (HUD)
 		{
