@@ -38,6 +38,10 @@ private:
 
 	bool bFireButtonPressed;
 
+	//HUD and Crosshairs
+	float CrosshairVelocityFactor;
+	float CrosshairInAirFactor;
+
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
