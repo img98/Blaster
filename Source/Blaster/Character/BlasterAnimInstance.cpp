@@ -62,5 +62,10 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 			//웨폰소켓의 transform을 캐릭터메쉬의 transform으로 바꾸는 작업 / hand_r을 기준으로 만드는 이유는 = 왼손의 위치는 오른손의 위치와 관련시키는게 추정하기 편해서
 		LeftHandTransform.SetLocation(OutPosition);
 		LeftHandTransform.SetRotation(FQuat(OutRotation)); //SetRotation은 그냥 FRotator가 아니라 특이하게 FQuat을 사용하더라
+	
+		FTransform MuzzleTipTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
+		FVector MuzzleX(FRotationMatrix(MuzzleTipTransform.GetRotation().Rotator()).GetUnitAxis(EAxis::X));
+		DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), MuzzleTipTransform.GetLocation() + MuzzleX * 1000.f, FColor::Red);
+		DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), BlasterCharacter->GetHitTarget(), FColor::Orange);
 	}
 }

@@ -318,3 +318,9 @@ bool ABlasterCharacter::IsAiming()
 {
 	return(Combat && Combat->bAiming);
 }
+
+FVector ABlasterCharacter::GetHitTarget() const
+{
+	if (Combat == nullptr) return FVector();
+	return Combat->HitTarget;
+}
