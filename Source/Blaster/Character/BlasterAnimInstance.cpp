@@ -59,13 +59,16 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		FVector OutPosition; //아래 TransformToBoneSpace을 사용하면 나오는 두 결과값을 저장하기 위한 변수
 		FRotator OutRotation;
 		BlasterCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandTransform.GetLocation(), FRotator::ZeroRotator, OutPosition, OutRotation);
-			//웨폰소켓의 transform을 캐릭터메쉬의 transform으로 바꾸는 작업 / hand_r을 기준으로 만드는 이유는 = 왼손의 위치는 오른손의 위치와 관련시키는게 추정하기 편해서
+		//웨폰소켓의 transform을 캐릭터메쉬의 transform으로 바꾸는 작업 / hand_r을 기준으로 만드는 이유는 = 왼손의 위치는 오른손의 위치와 관련시키는게 추정하기 편해서
 		LeftHandTransform.SetLocation(OutPosition);
 		LeftHandTransform.SetRotation(FQuat(OutRotation)); //SetRotation은 그냥 FRotator가 아니라 특이하게 FQuat을 사용하더라
-	
-		FTransform MuzzleTipTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
-		FVector MuzzleX(FRotationMatrix(MuzzleTipTransform.GetRotation().Rotator()).GetUnitAxis(EAxis::X));
-		DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), MuzzleTipTransform.GetLocation() + MuzzleX * 1000.f, FColor::Red);
-		DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), BlasterCharacter->GetHitTarget(), FColor::Orange);
+
+		if (BlasterCharacter->IsLocallyControlled())
+		{
+			bLocallyControlled = true;
+			FTransform RightHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("Hand_R"), ERelativeTransformSpace::RTS_World);
+			RightHandRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget()));
+			//Combat의 HitTarget이 서버복사되지 않아 다른 PC에서는 총 방향이 정확하진 않을것인데, 어쩌피 타인에게는 중요한사항이 아니기에 그런데 bandwidth를 낭비하지 않겠다.
+		}
 	}
 }
