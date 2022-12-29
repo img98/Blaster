@@ -44,6 +44,15 @@ private:
 
 	FVector HitTarget;
 
+	//Aiming and FOV	
+	float DefaultFOV; //FOV when not aiming; set in Beginplay
+	float CurrentFOV;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float ZoomedFOV = 30.f;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float ZoomInterpSpeed = 20.f;
+	void InterpFOV(float DeltaTime);
+
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
