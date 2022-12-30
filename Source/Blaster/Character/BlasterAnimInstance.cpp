@@ -67,7 +67,8 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		{
 			bLocallyControlled = true;
 			FTransform RightHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("Hand_R"), ERelativeTransformSpace::RTS_World);
-			RightHandRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget()));
+			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget()));
+			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f); //먼곳을 조준하다 다른 물체가 사선으로 들어와 거리가 갑자기 변할때, 무기의 Rotation이 갑자기 튀는걸 수정
 			//Combat의 HitTarget이 서버복사되지 않아 다른 PC에서는 총 방향이 정확하진 않을것인데, 어쩌피 타인에게는 중요한사항이 아니기에 그런데 bandwidth를 낭비하지 않겠다.
 		}
 	}

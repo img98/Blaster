@@ -35,6 +35,7 @@ ABlasterCharacter::ABlasterCharacter()
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore); //캐릭터가 다른캐릭터 뒤로 지나갈때 타캐릭터의 카메라시점 바꾸는것 방지
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block); //LineTrace가 통과되는걸 막기위해 Block설정 추가
 
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 850.f); //돌때 얼마나 빠르게 돌지
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning; //TurnInPlace의 초기설정
