@@ -229,6 +229,11 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 	if (bScreenToWorld)
 	{
 		FVector Start = CrosshairWorldPosition;
+		if (Character) //카메라에서 linetrace가 시작되므로, 카메라와 캐릭터 사이에 물체가 있다면(자신 포함) trace가 캐릭터 뒤로도 되는 글리치를 해결해보자
+		{	//캐릭터까지의 거리를 구하고 Start에 더하여, 캐릭터 앞에서부터 trace가 시작되도록 하면 된다. 100.f는 캐릭터보다 조금더 앞을 의미
+			float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
+			Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f); 
+		}
 		FVector End = Start + CrosshairWorldDirection * TRACE_LENGTH;
 
 		GetWorld()->LineTraceSingleByChannel(
