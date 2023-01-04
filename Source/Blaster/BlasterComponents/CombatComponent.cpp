@@ -11,7 +11,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "Blaster/PlayerController/BlasterPlayerController.h"
-#include "Blaster/HUD/BlasterHUD.h"
 #include "Camera/CameraComponent.h"
 
 UCombatComponent::UCombatComponent()
@@ -180,20 +179,25 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 
 	//ServerFire에 있는 Montage재생과 Fire함수 호출은 위 SetAiming과 같은 맥락으로 클라에서 실행하지 않아도 된다.=그래서 삭제했다.
 
-	if (bFireButtonPressed)
+	if (bFireButtonPressed && EquippedWeapon)
 	{
-		//서버에 명령을 보내야, 서버에서 multicast를 하라고 모든 클라에게 명령할수 있기에 2개 단계를 거치는것!
-		FHitResult HitResult;
-		TraceUnderCrosshairs(HitResult);
-		ServerFire(HitResult.ImpactPoint); //ImpactPoint는 NetQuantize와 호환된다.
-
+		Fire();
+	}
+}
+void UCombatComponent::Fire()
+{
+	if (bCanFire)
+	{
+		bCanFire = false;
+		ServerFire(HitTarget); //매프레임 라인트레이싱을 하고있어서 따로 트레이스하는 함수는 제거함.
 		if (EquippedWeapon)
 		{
 			CrosshairShootingFactor = 2.f; //발사 반동 에임 벌어짐이 일정수준이게 고정
 		}
+		StartFireTimer();
 	}
 }
-void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget) //서버에 명령을 보내야, 서버에서 multicast를 하라고 모든 클라에게 명령할수 있기에 2개 단계를 거치는것!
 {
 	MulticastFire(TraceHitTarget);
 }
@@ -205,6 +209,28 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 	{
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
+	}
+}
+
+void UCombatComponent::StartFireTimer()
+{
+	if (EquippedWeapon == nullptr || Character == nullptr) return;
+
+	Character->GetWorldTimerManager().SetTimer( //타이머를 시작하는 함수
+		FireTimer,
+		this,
+		&UCombatComponent::FireTimerFinished,
+		EquippedWeapon->FireDelay
+	);
+}
+void UCombatComponent::FireTimerFinished()
+{
+	if (EquippedWeapon == nullptr) return;
+
+	bCanFire = true;
+	if (bFireButtonPressed && EquippedWeapon->bAutomatic)
+	{
+		Fire();
 	}
 }
 
@@ -250,6 +276,12 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 		{
 			HUDPackage.CrosshairsColor = FLinearColor::White;
 		}
+
+		if (!TraceHitResult.bBlockingHit) //ImpactPoint가 없으면 조준이 돌아가는걸 막기위해 다시 추가, 강의는 일부러 지우던데(lecture.77) 필요하지않나? (넣으니까 버그 해결되긴함)
+		{
+			TraceHitResult.ImpactPoint = End;
+			HitTarget = End;
+		}
 	}
 }
 
@@ -269,4 +301,3 @@ void UCombatComponent::EquipWeapon(class AWeapon* WeaponToEquip)
 	Character->bUseControllerRotationYaw = true; //무기장착시 움직임이 컨트롤러 Yaw인풋을 따라갈수있도록 재설정
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false; //movement방향으로 rotation이 돌지않게 재설정	
 }
-

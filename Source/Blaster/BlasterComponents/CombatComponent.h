@@ -58,6 +58,18 @@ private:
 	float ZoomInterpSpeed = 20.f;
 	void InterpFOV(float DeltaTime);
 
+	/*
+	Automatic Fire
+	*/
+	FTimerHandle FireTimer;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float FireDelay=.15f;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	bool bAutomatic = true;
+	bool bCanFire = true;;
+	void StartFireTimer();
+	void FireTimerFinished();
+
 protected:
 	virtual void BeginPlay() override;
 	void SetAiming(bool bIsAiming);
@@ -69,6 +81,8 @@ protected:
 	void OnRep_EquippedWeapon();
 
 	void FireButtonPressed(bool bPressed);
+
+	void Fire();
 
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize& TraceHitTarget); //NetQuantize는 패킷전송에 특화된 vector의 종류다.

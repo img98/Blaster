@@ -46,6 +46,15 @@ public:
 	float ZoomedFOV = 30.f;
 	UPROPERTY(EditAnywhere)
 	float ZoomInterpSpeed = 20.f;
+
+	/*
+	Automatic fire
+	*/
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	float FireDelay = .15f;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	bool bAutomatic = true;
 	
 protected:
 	virtual void BeginPlay() override;
