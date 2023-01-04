@@ -95,6 +95,14 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 }
 
+void ABlasterCharacter::OnRep_ReplicatedMovement()
+{
+	Super::OnRep_ReplicatedMovement();
+
+	SimProxiesTurn();
+	TimeSinceLastMovementReplication = 0.f; //DeltaTime 리셋
+}
+
 void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -105,20 +113,39 @@ void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	AimOffset(DeltaTime);
+	if (GetLocalRole() > ENetRole::ROLE_SimulatedProxy && IsLocallyControlled()) //ENetRole을 피킹해보면 Enum이기에 0=None/1=SimProxy/2=AutoProxy/3=Authority 라는걸 알수있다.
+	{
+		AimOffset(DeltaTime);
+	}
+	else
+	{
+		TimeSinceLastMovementReplication += DeltaTime;
+		if (TimeSinceLastMovementReplication > 0.25f) //deltaTime이 어느정도 지나면 움직임 복사함수를 실행(매틱마다 복사할수 없어서 이렇게 해야함)
+		{
+			OnRep_ReplicatedMovement();
+		}
+		CalculateAO_Pitch();
+	}
+
 	HideCameraIfCharacterClose();
+}
+
+float ABlasterCharacter::CalculateSpeed()
+{
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	return Velocity.Size();
 }
 
 void ABlasterCharacter::AimOffset(float DeltaTime)
 {
 	if (Combat && Combat->EquippedWeapon == nullptr) return;
-	FVector Velocity = GetVelocity();
-	Velocity.Z = 0.f;
-	float Speed = Velocity.Size();
-	bool bIsInAir = GetCharacterMovement()->IsFalling();
 
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+	float Speed = CalculateSpeed();
 	if (Speed == 0.f && !bIsInAir) // Idle상태이고, 점프중이지 않은 상태의 AO yaw 찾기
 	{
+		bRotateRootBone = true;
 		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); //매프레임마다 aim하고 있는 Yaw를 저장한다.
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation, StartingAimRotation); //두 rot의 순서에 따라 +-반대의 rot이 나오더라!
 		AO_Yaw = DeltaAimRotation.Yaw;
@@ -133,6 +160,7 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 	}
 	if (Speed > 0.f || bIsInAir) // 뛰거나 점프중일때 (=즉, 이동했을때 =캐릭터가 보는방향이 바뀔 때)
 	{
+		bRotateRootBone = false;
 		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f); //매프레임마다 aim하고 있는 Yaw를 저장한다.
 		AO_Yaw = 0.f; //이동하면 AimOffset이 0이어야한다...
 		bUseControllerRotationYaw = true; //캐릭터가 내 컨트롤러의 aim을따라 회전하기 위해 다시 true
@@ -140,6 +168,10 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	}
 
+	CalculateAO_Pitch();
+}
+void ABlasterCharacter::CalculateAO_Pitch() //Pitch를 조정하는 부분을 함수로 추출
+{
 	AO_Pitch = GetBaseAimRotation().Pitch; //이론상 그냥 조준점의 pitch를 가져가면 되는 간단한 코드인데...
 	if (AO_Pitch > 90.f && !IsLocallyControlled()) //로컬머신은 괜찮은데 서버머신에서는 음수로 나오는 각도가 360도에서부터 감소하는식으로 전송되는 글리치가 있었기에, 그걸 해결하려는 코드
 	{
@@ -148,8 +180,46 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		FVector2D OutRange(-90.f, 0.f);
 		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
 	}
-
 }
+void ABlasterCharacter::SimProxiesTurn()
+{
+	//AimOffset의 애니메이션은 RootBone을 직접 조정하는 방식이기에, SimulatedProxy인 대상이 움직이면 덜덜 떨리는것처럼 보인다.
+	//이런 버그를 해결하기 위해 SimProxy라면 ABP에서 AimOffset 애니메이션을 블렌드하긴 하지만 RotateRootBone 노드는 거치지 않게 해줄 bool을 사용하자.
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	bRotateRootBone = false;
+
+	float Speed = CalculateSpeed();
+	if (Speed > 0.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		return;
+	}
+
+	ProxyRotationLastFrame = ProxyRotation;
+	ProxyRotation = GetActorRotation();
+	ProxyYaw = UKismetMathLibrary::NormalizedDeltaRotator(ProxyRotation, ProxyRotationLastFrame).Yaw;
+
+	if (FMath::Abs(ProxyYaw) > TurnThreshhold)
+	{
+		if (ProxyYaw > TurnThreshhold)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_Right;
+		}
+		else if (ProxyYaw < TurnThreshhold)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_Left;
+		}
+		else
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		}
+		return;
+	}
+
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+}
+
 void ABlasterCharacter::TurnInPlace(float DeltaTime)
 {
 	UE_LOG(LogTemp, Warning, TEXT("%f"), AO_Yaw);
